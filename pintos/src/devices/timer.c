@@ -30,7 +30,7 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-struct list sleep_list;
+static struct list sleep_list;
 struct sleep_info
 {
   struct list_elem elem;
