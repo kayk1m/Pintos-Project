@@ -104,7 +104,7 @@ timer_sleep (int64_t ticks)
 
   struct sleep_info l;
   intr_disable ();
-  l.thread_elem = thread_currunt ();
+  l.thread_elem = thread_current ();
   l.time_remain = ticks;
   list_push_back (&sleep_list, &l.elem);
   thread_block ();
