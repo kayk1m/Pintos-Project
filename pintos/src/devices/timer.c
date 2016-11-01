@@ -118,7 +118,7 @@ timer_wakeup (void)
 {
   struct list_elem *e;
 
-  for (e = list_begin (&sleep_list); e != list_end(&sleep_list); e = list_next (e)) {
+  for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e)) {
     struct sleep_info *l = list_entry (e, struct sleep_info, elem);
 
     if (l->time_remain > 0)
@@ -127,7 +127,7 @@ timer_wakeup (void)
     }
     
     if (l->time_remain == 0) {
-      thread_unblock(l->thread_elem);
+      thread_unblock (l->thread_elem);
       list_remove (e);
       free(l);
     }
