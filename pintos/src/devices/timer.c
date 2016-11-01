@@ -102,15 +102,13 @@ timer_sleep (int64_t ticks)
 
   ASSERT (intr_get_level () == INTR_ON);
 
-  struct thread *t = thread_current ();
   struct sleep_info l;
-  enum intr_level old_level;
-  old_level = intr_disable ();
-  l.thread_elem = t;
+  intr_disable ();
+  l.thread_elem = thread_currunt ();
   l.time_remain = ticks;
   list_push_back (&sleep_list, &l.elem);
   thread_block ();
-  intr_set_level (old_level);
+  intr_enable ();
 }
 
 void
@@ -119,15 +117,15 @@ timer_wakeup (void)
   struct list_elem *e;
 
   for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e)) {
-    struct sleep_info l = list_entry (e, struct sleep_info, elem);
+    struct sleep_info *l = list_entry (e, struct sleep_info, elem);
 
-    if (l.time_remain > 0)
+    if (l->time_remain > 0)
     {
-      l.time_remain--;
+      l->time_remain--;
     }
     
-    if (l.time_remain == 0) {
-      thread_unblock (l.thread_elem);
+    if (l->time_remain == 0) {
+      thread_unblock (l->thread_elem);
       list_remove (e);
     }
   }
