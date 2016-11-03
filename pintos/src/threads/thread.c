@@ -165,7 +165,6 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux)
 {
-  printf ("thread_create executed");
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -239,7 +238,6 @@ thread_block (void)
 void
 thread_unblock (struct thread *t)
 {
-  msg ("thread_unblock executed");
   enum intr_level old_level;
 
   ASSERT (is_thread (t));
@@ -247,9 +245,9 @@ thread_unblock (struct thread *t)
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
-  schedule ();
   t->status = THREAD_READY;
   intr_set_level (old_level);
+  schedule ();
 }
 
 /* Returns the name of the running thread. */
@@ -493,7 +491,8 @@ alloc_frame (struct thread *t, size_t size)
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
 
-bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+bool
+compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
 {
   struct thread *thread1 = list_entry (a, struct thread, elem);
   struct thread *thread2 = list_entry (b, struct thread, elem);
@@ -508,7 +507,6 @@ bool compare_priority (const struct list_elem *a, const struct list_elem *b, voi
 static struct thread *
 next_thread_to_run (void)
 {
-  msg ("next_thread_to_run executed");
   if (list_empty (&ready_list)) {
     return idle_thread;
   }
@@ -516,7 +514,6 @@ next_thread_to_run (void)
     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
     struct thread *test = list_entry (max, struct thread, elem);
     list_remove (max);
-    msg ("priority is %d", test->priority);
     return test;
   }
 }
@@ -600,6 +597,7 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
+  printf ("schedule_tail completed");
 }
 
 /* Returns a tid to use for a new thread. */
