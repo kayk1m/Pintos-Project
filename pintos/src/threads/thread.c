@@ -70,7 +70,6 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-bool compare_priority (struct list_elem *a, struct list_elem *b);
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -491,29 +490,8 @@ alloc_frame (struct thread *t, size_t size)
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
 
-// static struct thread *
-// next_thread_to_run (void)
-// {
-//   if (list_empty (&ready_list))
-//     return idle_thread;
-//   else
-//     list_less_func less;
-//     struct list_elem *max = list_max (&ready_list, &less, priority);
-//     return list_entry (max, struct thread, elem);
-// }
-
-static struct thread *
-next_thread_to_run (void)
+list_less_func compare_priority()
 {
-  if (list_empty (&ready_list))
-    return idle_thread;
-  else
-  {
-    return list_max (&ready_list, compare_priority, NULL);
-  }
-}
-
-bool compare_priority (struct list_elem *a, struct list_elem *b) {
   struct thread *thread1 = list_entry (a, struct thread, elem);
   struct thread *thread2 = list_entry (b, struct thread, elem);
   if (thread1->priority < thread2->priority) {
@@ -523,6 +501,28 @@ bool compare_priority (struct list_elem *a, struct list_elem *b) {
     return false;
   }
 }
+
+static struct thread *
+next_thread_to_run (void)
+{
+  if (list_empty (&ready_list))
+    return idle_thread;
+  else
+    list_less_func less;
+    struct list_elem *max = list_max (&ready_list, &compare_priority, NULL);
+    return list_entry (max, struct thread, elem);
+}
+
+// static struct thread *
+// next_thread_to_run (void)
+// {
+//   if (list_empty (&ready_list))
+//     return idle_thread;
+//   else
+//   {
+//     return list_max (&ready_list, compare_priority, NULL);
+//   }
+// }
 
 
 /* Completes a thread switch by activating the new thread's page
