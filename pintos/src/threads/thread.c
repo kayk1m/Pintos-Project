@@ -505,30 +505,30 @@ compare_priority (const struct list_elem *a, const struct list_elem *b, void *au
   }
 }
 
-static struct thread *
-next_thread_to_run (void)
-{
-  if (list_empty (&ready_list)) {
-    return idle_thread;
-  }
-  else {
-    struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
-    struct thread *test = list_entry (max, struct thread, elem);
-    list_remove (max);
-    return test;
-  }
-}
-
 // static struct thread *
 // next_thread_to_run (void)
 // {
-//   if (list_empty (&ready_list))
+//   if (list_empty (&ready_list)) {
 //     return idle_thread;
-//   else
-//   {
-//     return list_max (&ready_list, compare_priority, NULL);
+//   }
+//   else {
+//     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
+//     struct thread *test = list_entry (max, struct thread, elem);
+//     list_remove (max);
+//     return test;
 //   }
 // }
+
+static struct thread *
+next_thread_to_run (void)
+{
+  if (list_empty (&ready_list))
+    return idle_thread;
+  else
+  {
+    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
+}
 
 
 /* Completes a thread switch by activating the new thread's page
