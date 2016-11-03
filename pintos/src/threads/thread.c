@@ -238,6 +238,7 @@ thread_block (void)
 void
 thread_unblock (struct thread *t)
 {
+  msg ("thread_unblock executed");
   enum intr_level old_level;
 
   ASSERT (is_thread (t));
