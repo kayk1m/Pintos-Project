@@ -247,8 +247,8 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
-  schedule ();
   intr_set_level (old_level);
+  thread_yield ();
 }
 
 /* Returns the name of the running thread. */
@@ -301,7 +301,7 @@ thread_exit (void)
   intr_disable ();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
-  schedule ();
+  yield ();
   NOT_REACHED ();
 }
 
