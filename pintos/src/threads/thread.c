@@ -67,7 +67,7 @@ static struct thread *next_thread_to_run (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
 static void *alloc_frame (struct thread *, size_t size);
-bool compare_priority (const struct list_elem *a, const struct list_elem *b);
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
@@ -493,7 +493,7 @@ alloc_frame (struct thread *t, size_t size)
    idle_thread. */
 
 bool
-compare_priority (const struct list_elem *a, const struct list_elem *b)
+compare_priority (const struct list_elem *a, const struct list_elem *b, void *)
 {
   struct thread *thread1 = list_entry (a, struct thread, elem);
   struct thread *thread2 = list_entry (b, struct thread, elem);
