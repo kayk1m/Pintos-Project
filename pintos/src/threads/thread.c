@@ -505,6 +505,7 @@ bool compare_priority (const struct list_elem *a, const struct list_elem *b, voi
 static struct thread *
 next_thread_to_run (void)
 {
+  msg("next_thread_to_run executed");
   if (list_empty (&ready_list)) {
     return idle_thread;
   }
