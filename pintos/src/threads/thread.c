@@ -505,11 +505,13 @@ bool compare_priority (const struct list_elem *a, const struct list_elem *b, voi
 static struct thread *
 next_thread_to_run (void)
 {
-  if (list_empty (&ready_list))
+  if (list_empty (&ready_list)) {
     return idle_thread;
-  else
+  }
+  else {
     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
     return list_entry (max, struct thread, elem);
+  }
 }
 
 // static struct thread *
