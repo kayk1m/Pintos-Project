@@ -587,6 +587,7 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void)
 {
+  ASSERT (!"should be here");
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
