@@ -15,7 +15,7 @@
 static thread_func simple_thread_func;
 
 void
-test_priority_preempt (void) 
+test_priority_preempt (void)
 {
   /* This test does not work with the MLFQS. */
   ASSERT (!thread_mlfqs);
@@ -24,15 +24,16 @@ test_priority_preempt (void)
   ASSERT (thread_get_priority () == PRI_DEFAULT);
 
   thread_create ("high-priority", PRI_DEFAULT + 1, simple_thread_func, NULL);
+  thread_yield ();
   msg ("The high-priority thread should have already completed.");
 }
 
-static void 
-simple_thread_func (void *aux UNUSED) 
+static void
+simple_thread_func (void *aux UNUSED)
 {
   int i;
-  
-  for (i = 0; i < 5; i++) 
+
+  for (i = 0; i < 5; i++)
     {
       msg ("Thread %s iteration %d", thread_name (), i);
       thread_yield ();
