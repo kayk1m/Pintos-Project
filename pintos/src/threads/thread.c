@@ -494,7 +494,7 @@ bool compare_priority (const struct list_elem *a, const struct list_elem *b, voi
 {
   struct thread *thread1 = list_entry (a, struct thread, elem);
   struct thread *thread2 = list_entry (b, struct thread, elem);
-  if (thread1->priority < thread2->priority) {
+  if (thread1->priority > thread2->priority) {
     return true;
   }
   else {
