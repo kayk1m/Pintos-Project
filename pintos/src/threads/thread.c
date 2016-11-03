@@ -509,7 +509,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
     list_less_func less;
-    struct list_elem *max = list_max (&ready_list, &compare_priority, NULL);
+    struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
     return list_entry (max, struct thread, elem);
 }
 
