@@ -510,7 +510,9 @@ next_thread_to_run (void)
   }
   else {
     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
-    return list_entry (max, struct thread, elem);
+    struct thread *test = list_entry (max, struct thread, elem);
+    msg("priority is %d", test->priority);
+    return test;
   }
 }
 
