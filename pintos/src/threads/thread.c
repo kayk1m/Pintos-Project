@@ -490,7 +490,8 @@ alloc_frame (struct thread *t, size_t size)
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
 
-bool compare_priority(struct list_elem *a, struct list_elem *b)
+bool
+compare_priority(struct list_elem *a, struct list_elem *b)
 {
   struct thread *thread1 = list_entry (a, struct thread, elem);
   struct thread *thread2 = list_entry (b, struct thread, elem);
@@ -508,7 +509,6 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-    list_less_func less;
     struct list_elem *max = list_max (&ready_list, &compare_priority, NULL);
     return list_entry (max, struct thread, elem);
 }
