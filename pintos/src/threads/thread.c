@@ -166,7 +166,6 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux)
 {
-  ASSERT (!'should come here');
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -248,8 +247,8 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
-  intr_set_level (old_level);
   schedule ();
+  intr_set_level (old_level);
 }
 
 /* Returns the name of the running thread. */
