@@ -134,9 +134,10 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  /* Enforce preemption. */
-  if (++thread_ticks >= TIME_SLICE)
-    intr_yield_on_return ();
+  // This is for round-robin scheduling!
+  // /* Enforce preemption. */
+  // if (++thread_ticks >= TIME_SLICE)
+  //   intr_yield_on_return ();
 }
 
 /* Prints thread statistics. */
