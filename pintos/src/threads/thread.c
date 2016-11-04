@@ -167,6 +167,7 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux)
 {
+  ASSERT( false );
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
