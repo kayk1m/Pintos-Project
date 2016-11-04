@@ -247,8 +247,10 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
+  //(if thread t has less priority than highest priority in ready_list,) t yields to schedule.
+  if (cur != idle_thread)
+    thread_yield ();
   intr_set_level (old_level);
-  thread_yield ();
 }
 
 /* Returns the name of the running thread. */
@@ -345,6 +347,8 @@ void
 thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
+  // if new_priority is less than the hightest priority in ready_list, thread yields:
+  thread_yield ();
 }
 
 /* Returns the current thread's priority. */
@@ -505,30 +509,30 @@ compare_priority (const struct list_elem *a, const struct list_elem *b, void *au
   }
 }
 
-// static struct thread *
-// next_thread_to_run (void)
-// {
-//   if (list_empty (&ready_list)) {
-//     return idle_thread;
-//   }
-//   else {
-//     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
-//     struct thread *test = list_entry (max, struct thread, elem);
-//     list_remove (max);
-//     return test;
-//   }
-// }
-
 static struct thread *
 next_thread_to_run (void)
 {
-  if (list_empty (&ready_list))
+  if (list_empty (&ready_list)) {
     return idle_thread;
-  else
-  {
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
+  else {
+    struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
+    struct thread *test = list_entry (max, struct thread, elem);
+    list_remove (max);
+    return test;
   }
 }
+
+// static struct thread *
+// next_thread_to_run (void)
+// {
+//   if (list_empty (&ready_list))
+//     return idle_thread;
+//   else
+//   {
+//     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+//   }
+// }
 
 
 /* Completes a thread switch by activating the new thread's page
@@ -587,7 +591,6 @@ thread_schedule_tail (struct thread *prev)
 static void
 schedule (void)
 {
-  ASSERT (!"should be here");
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
