@@ -248,8 +248,7 @@ thread_unblock (struct thread *t)
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   //(if thread t has less priority than highest priority in ready_list,) t yields to schedule.
-  if (cur != idle_thread)
-    thread_yield ();
+  thread_yield ();
   intr_set_level (old_level);
 }
 
