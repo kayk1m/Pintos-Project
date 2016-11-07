@@ -506,6 +506,7 @@ alloc_frame (struct thread *t, size_t size)
  static struct thread *
  next_thread_to_run (void)
  {
+   printf("next_thread_to_run called\n");
    if (list_empty (&ready_list)) {
      return idle_thread;
    }
