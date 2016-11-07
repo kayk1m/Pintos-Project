@@ -514,10 +514,8 @@ alloc_frame (struct thread *t, size_t size)
      return idle_thread;
    }
    else {
-     struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
-     struct thread *test = list_entry (max, struct thread, elem);
-     list_remove (max);
-     return test;
+     list_sort (&ready_list, compare_priority, NULL);
+     return list_entry (list_pop_front (&ready_list), struct thread, elem);
    }
  }
 
