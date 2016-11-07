@@ -175,6 +175,7 @@ thread_create (const char *name, int priority,
   tid_t tid;
   enum intr_level old_level;
 
+  printf("thread_create called\n");
   ASSERT (function != NULL);
 
   /* Allocate thread. */
