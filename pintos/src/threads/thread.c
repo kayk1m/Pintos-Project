@@ -67,10 +67,10 @@ static struct thread *next_thread_to_run (void);
 static void init_thread (struct thread *, const char *name, int priority);
 static bool is_thread (struct thread *) UNUSED;
 static void *alloc_frame (struct thread *, size_t size);
-bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -134,10 +134,9 @@ thread_tick (void)
   else
     kernel_ticks++;
 
-  // This is for round-robin scheduling!
-  // /* Enforce preemption. */
-  // if (++thread_ticks >= TIME_SLICE)
-  //   intr_yield_on_return ();
+  /* Enforce preemption. */
+  if (++thread_ticks >= TIME_SLICE)
+    intr_yield_on_return ();
 }
 
 /* Prints thread statistics. */
@@ -167,7 +166,6 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux)
 {
-  thread_exit ();
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -175,7 +173,6 @@ thread_create (const char *name, int priority,
   tid_t tid;
   enum intr_level old_level;
 
-  printf("thread_create called\n");
   ASSERT (function != NULL);
 
   /* Allocate thread. */
@@ -211,6 +208,9 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  /* Schedule ME */
+  thread_yield ();
 
   return tid;
 }
@@ -250,8 +250,6 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
-  //(if thread t has less priority than highest priority in ready_list,) t yields to schedule.
-  thread_yield ();
   intr_set_level (old_level);
 }
 
@@ -305,7 +303,7 @@ thread_exit (void)
   intr_disable ();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
-  thread_yield ();
+  schedule ();
   NOT_REACHED ();
 }
 
@@ -349,7 +347,6 @@ void
 thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
-  // if new_priority is less than the hightest priority in ready_list, thread yields:
   thread_yield ();
 }
 
@@ -497,45 +494,30 @@ alloc_frame (struct thread *t, size_t size)
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
+ bool
+ compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+ {
+   struct thread *thread1 = list_entry (a, struct thread, elem);
+   struct thread *thread2 = list_entry (b, struct thread, elem);
+   if (thread1->priority > thread2->priority) {
+     return true;
+   }
+   else {
+     return false;
+   }
+ }
 
-bool
-compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-  struct thread *thread1 = list_entry (a, struct thread, elem);
-  struct thread *thread2 = list_entry (b, struct thread, elem);
-  if (thread1->priority < thread2->priority) {
-    return true;
-  }
-  else {
-    return false;
-  }
-}
-
-static struct thread *
-next_thread_to_run (void)
-{
-  if (list_empty (&ready_list)) {
-    return idle_thread;
-  }
-  else {
-    struct list_elem *max = list_max (&ready_list, compare_priority, NULL);
-    struct thread *test = list_entry (max, struct thread, elem);
-    list_remove (max);
-    return test;
-  }
-}
-
-// static struct thread *
-// next_thread_to_run (void)
-// {
-//   if (list_empty (&ready_list))
-//     return idle_thread;
-//   else
-//   {
-//     return list_entry (list_pop_front (&ready_list), struct thread, elem);
-//   }
-// }
-
+ static struct thread *
+ next_thread_to_run (void)
+ {
+   if (list_empty (&ready_list)) {
+     return idle_thread;
+   }
+   else {
+     list_sort (&ready_list, compare_priority, NULL);
+     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+   }
+ }
 
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
@@ -604,7 +586,6 @@ schedule (void)
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
-  // printf ("schedule_tail completed");
 }
 
 /* Returns a tid to use for a new thread. */
