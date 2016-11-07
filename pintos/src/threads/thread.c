@@ -499,7 +499,7 @@ alloc_frame (struct thread *t, size_t size)
  {
    struct thread *thread1 = list_entry (a, struct thread, elem);
    struct thread *thread2 = list_entry (b, struct thread, elem);
-   if (thread1->priority < thread2->priority) {
+   if (thread1->priority > thread2->priority) {
      return true;
    }
    else {
