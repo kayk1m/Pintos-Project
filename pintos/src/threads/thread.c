@@ -495,7 +495,7 @@ alloc_frame (struct thread *t, size_t size)
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
  bool
- compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+ compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
  {
    struct thread *thread1 = list_entry (a, struct thread, elem);
    struct thread *thread2 = list_entry (b, struct thread, elem);
