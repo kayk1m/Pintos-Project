@@ -166,7 +166,6 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux)
 {
-  printf("thread_create called\n");
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -507,7 +506,6 @@ alloc_frame (struct thread *t, size_t size)
  static struct thread *
  next_thread_to_run (void)
  {
-   printf("next_thread_to_run called\n");
    if (list_empty (&ready_list)) {
      return idle_thread;
    }
