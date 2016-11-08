@@ -202,8 +202,8 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   if (lock->holder) {
-    list_push_front (&lock->original_priorities, lock->holder->priority);
     if (lock->holder->priority < thread_get_priority ()) {
+      list_push_front (&lock->original_priorities, lock->holder->priority);
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
     }
@@ -211,7 +211,6 @@ lock_acquire (struct lock *lock)
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  list_push_front (&lock->original_priorities, lock->holder->priority);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
