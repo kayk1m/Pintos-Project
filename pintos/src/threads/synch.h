@@ -3,7 +3,6 @@
 
 #include <list.h>
 #include <stdbool.h>
-#include "thread.h"
 
 /* A counting semaphore. */
 struct semaphore
@@ -24,7 +23,7 @@ struct lock
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
     int original_priority;
-    tid_t *donater;
+    int *donater;
   };
 
 void lock_init (struct lock *);
