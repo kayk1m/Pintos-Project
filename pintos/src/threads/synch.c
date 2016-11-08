@@ -248,7 +248,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
   if (lock->should_donation_back && !lock->donation_backed) {
-    printf("donation backed\n");
+    // printf("donation backed\n");
     lock->holder->priority = lock->original_priority;
     lock->original_priority = NULL;
     lock->donation_backed = true;
