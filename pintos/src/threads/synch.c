@@ -184,6 +184,7 @@ lock_init (struct lock *lock)
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
   lock->original_priority = NULL;
+  lock->donated_thread = NULL;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -205,8 +206,9 @@ lock_acquire (struct lock *lock)
     if (lock->holder->priority < thread_get_priority ()) {
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
+      lock->donated_thread = lock->holder;
       thread_yield ();
-      lock->holder->priority = lock->original_priority;
+      lock->donated_thread->priority = lock->original_priority;
       lock->original_priority = NULL;
     }
   }
