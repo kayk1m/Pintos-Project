@@ -183,7 +183,7 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
-  list_init (&lock->original_priorities);
+  lock->original_priority = NULL;
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -210,8 +210,7 @@ lock_acquire (struct lock *lock)
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  // lock->original_priority = thread_get_priority ();
-  list_push_front (&lock->original_priorities, lock->holder->priority);
+  lock->original_priority = thread_get_priority ();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -231,7 +230,7 @@ lock_try_acquire (struct lock *lock)
   success = sema_try_down (&lock->semaphore);
   if (success) {
     lock->holder = thread_current ();
-    list_push_front (&lock->original_priorities, lock->holder->priority);
+    lock->original_priority = thread_get_priority ();
   }
   return success;
 }
@@ -247,8 +246,9 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  lock->holder->priority = list_pop_front(&lock->original_priorities, struct lock_priority, elem);
+  lock->holder->priority = lock->original_priority;
   lock->holder = NULL;
+  lock->original_priority = NULL;
   sema_up (&lock->semaphore);
 }
 
