@@ -247,8 +247,9 @@ lock_release (struct lock *lock)
   if (lock->original_priority) {
     lock->holder->priority = lock->original_priority;
     lock->original_priority = NULL;\
-    lock->holder = NULL;
   }
+  
+  lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
 
