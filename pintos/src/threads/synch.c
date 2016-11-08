@@ -246,11 +246,11 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  // if (lock->donated_t == thread_current ()) {
+  if (lock->donated_t == thread_current ()) {
     lock->holder->priority = lock->original_priority;
     lock->original_priority = NULL;
     lock->donated_t == NULL;
-  // }
+  }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
