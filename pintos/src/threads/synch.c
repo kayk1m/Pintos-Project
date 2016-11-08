@@ -205,9 +205,11 @@ lock_acquire (struct lock *lock)
 
   if (lock->holder) {
     if (lock->holder->priority < thread_get_priority ()) {
-      lock->donation_priority = thread_get_priority ();
-      lock->holder->priority = thread_get_priority ();
       lock->donator = thread_current ();
+      lock->original_priority = lock->holder->priority;
+      lock->donation_priority = lock->donator->priority;
+      lock->holder->priority = lock->donator->priority;
+      lock->donator->priority = lock->original_priority;
       thread_yield ();
     }
   }
