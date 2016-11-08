@@ -28,7 +28,7 @@ struct lock
 struct lock_priority {
   struct list_elem elem;
   int original_priority;
-};
+}
 
 void lock_init (struct lock *);
 void lock_acquire (struct lock *);
