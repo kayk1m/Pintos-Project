@@ -109,7 +109,7 @@ struct thread
 extern bool thread_mlfqs;
 
 struct lock_priority {
-  struct list_elem *elem;
+  struct list_elem elem;
   int donation_priority;
 };
 
