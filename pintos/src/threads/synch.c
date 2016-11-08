@@ -209,7 +209,7 @@ lock_acquire (struct lock *lock)
       lock->original_priority = lock->holder->priority;
       lock->donation_priority = lock->donator->priority;
       lock->holder->priority = lock->donator->priority;
-      lock->donator->priority = lock->original_priority;
+      // lock->donator->priority = lock->original_priority;
       thread_yield ();
     }
   }
