@@ -204,10 +204,12 @@ lock_acquire (struct lock *lock)
 
   if (lock->holder) {
     if (lock->holder->priority < thread_get_priority ()) {
+      printf("priority %d saved\n", lock->holder->priority);
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
       lock->donated_thread = lock->holder;
       thread_yield ();
+      printf("priority %d backed\n", lock->original_priority);
       lock->donated_thread->priority = lock->original_priority;
       lock->original_priority = NULL;
     }
