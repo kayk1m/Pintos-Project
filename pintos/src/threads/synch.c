@@ -208,7 +208,7 @@ lock_acquire (struct lock *lock)
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
-      // lock->should_donation_back = true;
+      lock->should_donation_back = true;
     }
   }
   sema_down (&lock->semaphore);
