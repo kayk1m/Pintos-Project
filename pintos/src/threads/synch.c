@@ -63,7 +63,7 @@ void
 sema_down (struct semaphore *sema) 
 {
   enum intr_level old_level;
-  if (!list_empty (&sema->holder)) {
+  if (!list_empty (&sema->holders)) {
     struct thread *t = list_front (&sema->holders);
     if (t->priority < thread_get_priority ()) {
       int temp;
