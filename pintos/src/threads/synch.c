@@ -203,7 +203,9 @@ lock_acquire (struct lock *lock)
 
   if (lock->holder) {
     if (lock->holder->priority < thread_get_priority ()) {
-      lock->original_priority = lock->holder->priority;
+      lock->holder->default_priority = lock->holder->priority;
+      lock->original_priority = thread_get_priority ();
+      list_push_front (&lock->holder->donation_priorities, thread_get_priority ());
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
     }
@@ -244,9 +246,21 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  if (lock->original_priority) {
-    lock->holder->priority = lock->original_priority;
-    lock->original_priority = NULL;
+  if (!list_empty (&lock->holder->donation_priorities)) {
+    struct list_elem *e;
+    for (e = list_begin (&lock->holder->donation_priorities); e != list_end (&lock->holder->donation_priorities); e = list_next (e)) {
+      struct lock_priority *p = list_entry (e, struct lock_priority, elem);
+
+      if (p->donation_priority == lock->original_priority) {
+        list_remove (e);
+      }
+    }
+    if (!list_empty (&lock->holder->donation_priorities)) {
+      lock->holder->priority = list_entry (list_front (&lock->holder->donation_priorities), struct lock_priority, elem)->donation_priority;
+    }
+    else {
+      lock->holder->priority = lock->holder->default_priority;
+    }
   }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
