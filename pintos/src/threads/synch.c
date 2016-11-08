@@ -247,7 +247,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-  lock->holder->priority = list_entry (list_pop_front(&lock->original_priorities), struct lock_priority, elem)->original_priority;
+  lock->holder->priority = list_pop_front(&lock->original_priorities, struct lock_priority, elem);
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
