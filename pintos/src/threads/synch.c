@@ -68,7 +68,7 @@ sema_down (struct semaphore *sema)
     int temp;
     temp = t->priority;
     t->priority = thread_get_priority ();
-    thread_set_priority = temp;
+    thread_set_priority (temp);
     sema->donation_counter++;
   }
 
@@ -126,7 +126,7 @@ sema_up (struct semaphore *sema)
     int temp;
     temp = t->priority;
     t->priority = thread_get_priority ();
-    thread_set_priority = temp;
+    thread_set_priority (temp);
     sema->donation_counter--;
   }
   ASSERT (sema != NULL);
