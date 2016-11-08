@@ -2,4 +2,5 @@ cscope.files
 cscope.out
 TAGS
 tags
-utils/
+pintos
+Pintos.pm
