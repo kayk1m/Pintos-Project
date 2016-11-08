@@ -203,7 +203,7 @@ lock_acquire (struct lock *lock)
 
   if (lock->holder) {
     if (lock->holder->priority < thread_get_priority ()) {
-      printf("priority %d saved\n", lock->holder->priority);
+      // printf("priority %d saved\n", lock->holder->priority);
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
@@ -246,7 +246,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
   if (lock->original_priority) {
-    printf("priority %d backed\n", lock->original_priority);
+    // printf("priority %d backed\n", lock->original_priority);
     thread_current ()->priority = lock->original_priority;
     lock->original_priority = NULL;
     thread_yield ();
