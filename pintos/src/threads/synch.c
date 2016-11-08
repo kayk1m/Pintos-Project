@@ -42,12 +42,14 @@
    - up or "V": increment the value (and wake up one waiting
      thread, if any). */
 void
-sema_init (struct semaphore *sema, unsigned value) 
+sema_init (struct semaphore *sema, unsigned value)
 {
   ASSERT (sema != NULL);
 
   sema->value = value;
+  sema->donation_counter = 0;
   list_init (&sema->waiters);
+  list_init (&sema->holders);
 }
 
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
@@ -61,6 +63,14 @@ void
 sema_down (struct semaphore *sema) 
 {
   enum intr_level old_level;
+  struct thread *t = list_front (&sema->holders);
+  if (t->priority < thread_get_priority ()) {
+    int temp;
+    temp = t->priority;
+    t->priority = thread_get_priority ();
+    thread_set_priority = temp;
+    sema->donation_counter++;
+  }
 
   ASSERT (sema != NULL);
   ASSERT (!intr_context ());
@@ -72,6 +82,8 @@ sema_down (struct semaphore *sema)
       thread_block ();
     }
   sema->value--;
+  list_push_back (&sema->holders, &thread_current ()->elem);
+  list_sort (&sema->holders, compare_priority, NULL);
   intr_set_level (old_level);
 }
 
@@ -110,6 +122,13 @@ sema_up (struct semaphore *sema)
 {
   enum intr_level old_level;
 
+  if (sema->donation_counter) {
+    int temp;
+    temp = t->priority;
+    t->priority = thread_get_priority ();
+    thread_set_priority = temp;
+    sema->donation_counter--;
+  }
   ASSERT (sema != NULL);
 
   old_level = intr_disable ();
