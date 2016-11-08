@@ -209,9 +209,6 @@ lock_acquire (struct lock *lock)
       lock->holder->priority = thread_get_priority ();
       lock->donated_thread = lock->holder;
       thread_yield ();
-      printf("priority %d backed\n", lock->original_priority);
-      lock->donated_thread->priority = lock->original_priority;
-      lock->original_priority = NULL;
     }
   }
   sema_down (&lock->semaphore);
@@ -251,6 +248,9 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  printf("priority %d backed\n", lock->original_priority);
+  lock->donated_thread->priority = lock->original_priority;
+  lock->original_priority = NULL;
   thread_yield ();
 
   lock->holder = NULL;
