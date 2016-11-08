@@ -248,10 +248,10 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   if (lock->donated_tid == thread_current ()->tid) {
     lock->holder->priority = lock->original_priority;
+    lock->holder = NULL;
     lock->original_priority = NULL;
     lock->donated_tid == NULL;
   }
-  lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
 
