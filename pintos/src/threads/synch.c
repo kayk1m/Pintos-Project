@@ -183,7 +183,6 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
-  lock->original_priority = thread_get_priority ();
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -201,9 +200,6 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  if (lock->original_priority < thread_get_priority ()) {
-    lock->holder->priority = thread_get_priority ();
-  }
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -240,7 +236,6 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   lock->holder = NULL;
-  thread_set_priority (lock->original_priority);
   sema_up (&lock->semaphore);
 }
 
