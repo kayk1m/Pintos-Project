@@ -206,7 +206,7 @@ lock_acquire (struct lock *lock)
     if (lock->holder->priority < thread_get_priority ()) {
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
-      lock->donater = thread_current ();
+      lock->donater = thread_current ()->tid;
       thread_yield ();
     }
   }
@@ -247,7 +247,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
   if (lock->original_priority) {
-    if (lock->donater == thread_current ()) {
+    if (lock->donater == thread_current ()->tid) {
       lock->holder->priority = lock->original_priority;
       lock->original_priority = NULL;
     }
