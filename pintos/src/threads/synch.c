@@ -208,7 +208,7 @@ lock_acquire (struct lock *lock)
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
-      lock->should_donation_back = true;
+      // lock->should_donation_back = true;
     }
   }
   sema_down (&lock->semaphore);
@@ -247,11 +247,11 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  if (lock->should_donation_back && !lock->donation_backed) {
-    // printf("donation backed\n");
+  if (lock->should_donation_back) {
+    printf("donation backed\n");
     lock->holder->priority = lock->original_priority;
     lock->original_priority = NULL;
-    lock->donation_backed = true;
+    // lock->donation_backed = true;
   }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
