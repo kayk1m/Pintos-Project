@@ -266,7 +266,7 @@ lock_release (struct lock *lock)
       lock->donator = NULL;
       lock->donation_priority = NULL;
     }
-    if (!donation_count) {
+    if (!lock->holder->donation_count) {
       lock->holder->priority = lock->holder->saved_priority;
       lock->holder->saved_priority = NULL;
     }
