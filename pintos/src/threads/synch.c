@@ -63,13 +63,15 @@ void
 sema_down (struct semaphore *sema) 
 {
   enum intr_level old_level;
-  struct thread *t = list_front (&sema->holders);
-  if (t->priority < thread_get_priority ()) {
-    int temp;
-    temp = t->priority;
-    t->priority = thread_get_priority ();
-    thread_set_priority (temp);
-    sema->donation_counter++;
+  if (!list_empty (&sema->holder)) {
+    struct thread *t = list_front (&sema->holders);
+    if (t->priority < thread_get_priority ()) {
+      int temp;
+      temp = t->priority;
+      t->priority = thread_get_priority ();
+      thread_set_priority (temp);
+      sema->donation_counter++;
+    }
   }
 
   ASSERT (sema != NULL);
