@@ -247,12 +247,13 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
-  printf("priority %d backed\n", lock->original_priority);
-  lock->donated_thread->priority = lock->original_priority;
-  lock->original_priority = NULL;
-  thread_yield ();
-
+  if (lock->donated_thread) {
+    printf("priority %d backed\n", lock->original_priority);
+    lock->donated_thread->priority = lock->original_priority;
+    lock->original_priority = NULL;
+    thread_yield ();
+  }
+  
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
