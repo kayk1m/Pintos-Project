@@ -255,13 +255,13 @@ lock_release (struct lock *lock)
     if (lock->holder->priority == lock->donation_priority) {
       lock->holder->priority = lock->donator->priority;
       lock->donator->priority = lock->donation_priority;
-      lock->donation_count--;
+      lock->holder->donation_count--;
       lock->donator = NULL;
       lock->donation_priority = NULL;
     }
     else {
       lock->donator->priority = lock->donation_priority;
-      lock->donation_count--;
+      lock->holder->donation_count--;
       lock->donator = NULL;
       lock->donation_priority = NULL;
     }
