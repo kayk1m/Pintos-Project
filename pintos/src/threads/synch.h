@@ -5,12 +5,11 @@
 #include <stdbool.h>
 
 /* A counting semaphore. */
-struct semaphore 
+struct semaphore
   {
     unsigned value;             /* Current value. */
-    int donation_counter;       /* counting donations. */
+    int donation;               /* (ADDED) Donated priority */
     struct list waiters;        /* List of waiting threads. */
-    struct list holders;        /* List of threads holding semaphore. */
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -20,7 +19,7 @@ void sema_up (struct semaphore *);
 void sema_self_test (void);
 
 /* Lock. */
-struct lock 
+struct lock
   {
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
@@ -33,7 +32,7 @@ void lock_release (struct lock *);
 bool lock_held_by_current_thread (const struct lock *);
 
 /* Condition variable. */
-struct condition 
+struct condition
   {
     struct list waiters;        /* List of waiting threads. */
   };
