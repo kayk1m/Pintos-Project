@@ -88,8 +88,8 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int original_priority               /* (ADDED) Priority before donated. */
-    struct list sema_list               /* (ADDED) Keep track of semaphore it holds. */
+    int original_priority;               /* (ADDED) Priority before donated. */
+    struct list sema_list;               /* (ADDED) Keep track of semaphore it holds. */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
