@@ -206,8 +206,6 @@ lock_acquire (struct lock *lock)
       lock->original_priority = lock->holder->priority;
       lock->holder->priority = thread_get_priority ();
       thread_yield ();
-      lock->holder->priority = lock->original_priority;
-      lock->original_priority = NULL;
     }
   }
   sema_down (&lock->semaphore);
@@ -246,6 +244,10 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+  if (lock->original_priority) {
+    lock->holder->priority = lock->original_priority;
+    lock->original_priority = NULL;
+  }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
