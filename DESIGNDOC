@@ -115,13 +115,13 @@ We think this is the minimum overhead.
 >> timer_sleep() simultaneously?
 
 We didn't think about that side(TEST codes don't include that problem),
-but using mutual exclusion to make critical section will solve it.
+but using spinlock to make critical section will solve it.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
 'Interrupt Disable' is already applied to timer_sleep().
-There will not be a timer interrupt inside the critical section in timer_sleep().
+There will not be a timer interrupt inside the critical section in timer_sleep() assuming no-preemption.
 
 
 ---- RATIONALE ----
@@ -129,7 +129,7 @@ There will not be a timer interrupt inside the critical section in timer_sleep()
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
-This is 'Simple' and 'Powerful' solution for avoiding busy waiting of timer.
+This is 'Simple' and 'Powerful' solution for avoiding busy waiting of timer as far as we know.
 
 			 PRIORITY SCHEDULING
 			 ===================
@@ -322,7 +322,7 @@ cond_wait (struct condition *cond, struct lock *lock)
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
 
-We tried to solve 'priority inversion' problem by using donation technique
+We tried to solve 'priority inversion' problem by using priority donation technique.
 (you can see our effort in lots of commits over several branches.)
 (T.T)
 
@@ -338,8 +338,16 @@ to ensure the highest priority thread wakes up first.
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
+If a thread calls lock_acquire() for the lock that the lower priority thread is holding, the priority of the lower-priority
+thread becomes that of the higher-priority thread that calls lock_acquire(), which is a priority donation.
+The nested donation should be handled in the way that all the threads related to the nested donation have the highest 
+priority among them.
+
 >> B5: Describe the sequence of events when lock_release() is called
 >> on a lock that a higher-priority thread is waiting for.
+
+If the thread that calls the lock_release() got priority donation for this lock, the thread returns the donation, and
+highest-priority thread on the waiting list for this lock gets it.
 
 ---- SYNCHRONIZATION ----
 
@@ -347,7 +355,8 @@ to ensure the highest priority thread wakes up first.
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
-We didn's avoid race condition. We don't know how to perform that.
+We didn't implement an algorithm to avoid race condition. 
+We don't understand how the race in thread_set_priority() is possible.
 
 
 ---- RATIONALE ----
@@ -355,7 +364,7 @@ We didn's avoid race condition. We don't know how to perform that.
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
-This is 'Simple' and 'Powerful' solution for priority scheduling.
+This is 'Simple' and 'Powerful' solution for priority scheduling as far as we know.
 We tried to solve 'priority inversion' problem by using donation technique
 (you can see our effort in lots of commits over several branches.)
 (T.T)
