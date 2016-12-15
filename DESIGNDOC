@@ -1,6 +1,5 @@
-
 			+--------------------+
-			|        CS 140      |
+			|        IIT 3002    |
 			| PROJECT 1: THREADS |
 			|   DESIGN DOCUMENT  |
 			+--------------------+
@@ -9,9 +8,8 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Jeonghyun Kim <kimjh@bawi.org>
+Byeongjoon Kim <bjkimp52014@gmail.com>
 
 ---- PRELIMINARIES ----
 
@@ -31,13 +29,85 @@ FirstName LastName <email@domain.example>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+/* This list holds sleeping threads. */
+static struct list sleep_list; 
+
+/* This sturct contains a sleeping thread and its remained sleep time. It will be inserted to sleep_list. */
+struct sleep_info 
+{
+  struct list_elem elem;
+  struct thread *thread_elem;
+  int64_t time_remain;
+};
+
+/* This function updates remained sleep time of each threads in sleep_list, and wake up the thread of which 
+remained sleep time is zero. */
+void timer_wakeup (void)  
+{
+  struct list_elem *e;
+
+  for (e = list_begin (&sleep_list); e != list_end (&sleep_list); e = list_next (e)) {
+    struct sleep_info *l = list_entry (e, struct sleep_info, elem);
+
+    if (l->time_remain > 0)
+    {
+      l->time_remain--;
+    }
+
+    if (l->time_remain == 0) {
+      thread_unblock (l->thread_elem);
+      list_remove (e);
+    }
+  }
+}
+
+/* list_init is added */
+void timer_init (void)
+{
+  pit_configure_channel (0, 2, TIMER_FREQ);
+  intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init (&sleep_list);
+}
+
+/* Several lines of code are added to push thread into sleep_list */
+void timer_sleep (int64_t ticks)
+{
+  if (ticks <= 0)
+    return;
+  int64_t start = timer_ticks ();
+  ASSERT (intr_get_level () == INTR_ON);
+
+  struct sleep_info l;
+  intr_disable ();
+  l.thread_elem = thread_current ();
+  l.time_remain = ticks;
+  list_push_back (&sleep_list, &l.elem);
+  thread_block ();
+  intr_enable ();
+}
+
+/* timer_wakeup () is added */
+static void timer_interrupt (struct intr_frame *args UNUSED)
+{
+  ticks++;
+  timer_wakeup ();
+  thread_tick ();
+}
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+A thread is pushed into sleep_list with the target sleep time(ticks), and blocked. 
+Here, the busy waiting (while loop) part is deleted.
+Instead, timer_interrupt calls to the function timer_wakeup () as mentioned before.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+
+We updates and unblocks, if the time has passed, the treads in the sleep_list checking all the elements using for loop. 
+We think this is the minimum overhead.
 
 ---- SYNCHRONIZATION ----
 
@@ -60,6 +130,180 @@ FirstName LastName <email@domain.example>
 >> B1: Copy here the declaration of each new or changed `struct' or
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+
+thread.c
+
+(1)
+tid_t
+thread_create (const char *name, int priority,
+               thread_func *function, void *aux)
+{
+  struct thread *t;
+  struct kernel_thread_frame *kf;
+  struct switch_entry_frame *ef;
+  struct switch_threads_frame *sf;
+  tid_t tid;
+  enum intr_level old_level;
+
+  ASSERT (function != NULL);
+
+  /* Allocate thread. */
+  t = palloc_get_page (PAL_ZERO);
+  if (t == NULL)
+    return TID_ERROR;
+
+  /* Initialize thread. */
+  init_thread (t, name, priority);
+  tid = t->tid = allocate_tid ();
+
+  /* Prepare thread for first run by initializing its stack.
+     Do this atomically so intermediate values for the 'stack'
+     member cannot be observed. */
+  old_level = intr_disable ();
+
+  /* Stack frame for kernel_thread(). */
+  kf = alloc_frame (t, sizeof *kf);
+  kf->eip = NULL;
+  kf->function = function;
+  kf->aux = aux;
+
+  /* Stack frame for switch_entry(). */
+  ef = alloc_frame (t, sizeof *ef);
+  ef->eip = (void (*) (void)) kernel_thread;
+
+  /* Stack frame for switch_threads(). */
+  sf = alloc_frame (t, sizeof *sf);
+  sf->eip = switch_entry;
+  sf->ebp = 0;
+
+  intr_set_level (old_level);
+
+  /* Add to run queue. */
+  thread_unblock (t);
+
+  /***************** Schedule ME - added *****************/
+  thread_yield ();
+
+  return tid;
+}
+
+(2)
+void
+thread_set_priority (int new_priority)
+{
+  thread_current ()->priority = new_priority;
+  
+  /***************** Schedule ME - added *****************/
+  thread_yield ();
+}
+
+(3)
+ - Newly Defined Function -
+ bool
+ compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux)
+ {
+   struct thread *thread1 = list_entry (a, struct thread, elem);
+   struct thread *thread2 = list_entry (b, struct thread, elem);
+   if (thread1->priority > thread2->priority) {
+     return true;
+   }
+   else {
+     return false;
+   }
+ }
+ 
+ (4)
+ static struct thread *
+ next_thread_to_run (void)
+ {
+   if (list_empty (&ready_list)) {
+     return idle_thread;
+   }
+   else {
+     /***************** Sorting Before Pop Front from The Ready List *****************/
+     list_sort (&ready_list, compare_priority, NULL);
+     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+   }
+ }
+ 
+thread.h
+ 
+(1)
+// Newly Defined Function Added to Header File.
+bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
+ 
+synch.c
+ 
+(1)
+void
+sema_up (struct semaphore *sema) 
+{
+  enum intr_level old_level;
+
+  ASSERT (sema != NULL);
+
+  old_level = intr_disable ();
+  if (!list_empty (&sema->waiters)) {
+    %%list_sort (&sema->waiters, compare_priority, NULL);
+    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+  }
+
+  sema->value++;
+  intr_set_level (old_level);
+  
+  /***************** Schedule ME - added *****************/
+  thread_yield ();
+}
+
+(2)
+struct semaphore_elem 
+  {
+    struct list_elem elem;              /* List element. */
+    struct semaphore semaphore;         /* This semaphore. */
+    int priority;                       /* This is priority of thread  - added */
+  };
+  
+(3)
+/***************** New Function for Semaphore *****************/
+bool
+compare_semaphore (const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+  struct semaphore_elem *sema1 = list_entry (a, struct semaphore_elem, elem);
+  struct semaphore_elem *sema2 = list_entry (b, struct semaphore_elem, elem);
+  if (sema1->priority > sema2->priority) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+(4)
+void
+cond_wait (struct condition *cond, struct lock *lock) 
+{
+  struct semaphore_elem waiter;
+
+  ASSERT (cond != NULL);
+  ASSERT (lock != NULL);
+  ASSERT (!intr_context ());
+  ASSERT (lock_held_by_current_thread (lock));
+  
+  sema_init (&waiter.semaphore, 0);
+  
+  /***************** Saving Waiting Thread Priority *****************/
+  waiter.priority = thread_get_priority ();
+  
+  list_push_back (&cond->waiters, &waiter.elem);
+  
+  /***************** Sorting Waiters *****************/
+  list_sort (&cond->waiters, compare_semaphore, NULL);
+  
+  lock_release (lock);
+  sema_down (&waiter.semaphore);
+  lock_acquire (lock);
+}
+
 
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
@@ -87,56 +331,6 @@ FirstName LastName <email@domain.example>
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
 
-			  ADVANCED SCHEDULER
-			  ==================
-
----- DATA STRUCTURES ----
-
->> C1: Copy here the declaration of each new or changed `struct' or
->> `struct' member, global or static variable, `typedef', or
->> enumeration.  Identify the purpose of each in 25 words or less.
-
----- ALGORITHMS ----
-
->> C2: Suppose threads A, B, and C have nice values 0, 1, and 2.  Each
->> has a recent_cpu value of 0.  Fill in the table below showing the
->> scheduling decision and the priority and recent_cpu values for each
->> thread after each given number of timer ticks:
-
-timer  recent_cpu    priority   thread
-ticks   A   B   C   A   B   C   to run
------  --  --  --  --  --  --   ------
- 0
- 4
- 8
-12
-16
-20
-24
-28
-32
-36
-
->> C3: Did any ambiguities in the scheduler specification make values
->> in the table uncertain?  If so, what rule did you use to resolve
->> them?  Does this match the behavior of your scheduler?
-
->> C4: How is the way you divided the cost of scheduling between code
->> inside and outside interrupt context likely to affect performance?
-
----- RATIONALE ----
-
->> C5: Briefly critique your design, pointing out advantages and
->> disadvantages in your design choices.  If you were to have extra
->> time to work on this part of the project, how might you choose to
->> refine or improve your design?
-
->> C6: The assignment explains arithmetic for fixed-point math in
->> detail, but it leaves it open to you to implement it.  Why did you
->> decide to implement it the way you did?  If you created an
->> abstraction layer for fixed-point math, that is, an abstract data
->> type and/or a set of functions or macros to manipulate fixed-point
->> numbers, why did you do so?  If not, why not?
 
 			   SURVEY QUESTIONS
 			   ================
