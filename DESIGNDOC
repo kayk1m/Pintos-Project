@@ -114,13 +114,22 @@ We think this is the minimum overhead.
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+We didn't think about that side(TEST codes don't include that problem),
+but using mutual exclusion to make critical section will solve it.
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+'Interrupt Disable' is already applied to timer_sleep().
+There will not be a timer interrupt inside the critical section in timer_sleep().
+
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+This is 'Simple' and 'Powerful' solution for avoiding busy waiting of timer.
 
 			 PRIORITY SCHEDULING
 			 ===================
@@ -312,6 +321,10 @@ cond_wait (struct condition *cond, struct lock *lock)
 >> B2: Explain the data structure used to track priority donation.
 >> Use ASCII art to diagram a nested donation.  (Alternately, submit a
 >> .png file.)
+
+We tried to solve 'priority inversion' problem by using donation technique
+(you can see our effort in lots of commits over several branches.)
+(T.T)
 
 ---- ALGORITHMS ----
 
