@@ -131,7 +131,7 @@ We think this is the minimum overhead.
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-thread.c
+1. thread.c
 
 (1)
 tid_t
@@ -226,13 +226,13 @@ thread_set_priority (int new_priority)
    }
  }
  
-thread.h
+2. thread.h
  
 (1)
 // Newly Defined Function Added to Header File.
 bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
  
-synch.c
+3. synch.c
  
 (1)
 void
@@ -244,7 +244,10 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) {
-    %%list_sort (&sema->waiters, compare_priority, NULL);
+  
+    /***************** Sorting Waiters *****************/
+    list_sort (&sema->waiters, compare_priority, NULL);
+    
     thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
   }
 
@@ -265,6 +268,7 @@ struct semaphore_elem
   
 (3)
 /***************** New Function for Semaphore *****************/
+/* it compared the priority of semaphores */
 bool
 compare_semaphore (const struct list_elem *a, const struct list_elem *b, void *aux)
 {
@@ -314,6 +318,10 @@ cond_wait (struct condition *cond, struct lock *lock)
 >> B3: How do you ensure that the highest priority thread waiting for
 >> a lock, semaphore, or condition variable wakes up first?
 
+A lock and a condition variable use semaphore, so we modified a semaphore.
+The list of threads waiting for a semaphore is sorted according to each thread's priority 
+to ensure the highest priority thread wakes up first.
+
 >> B4: Describe the sequence of events when a call to lock_acquire()
 >> causes a priority donation.  How is nested donation handled?
 
@@ -326,10 +334,18 @@ cond_wait (struct condition *cond, struct lock *lock)
 >> how your implementation avoids it.  Can you use a lock to avoid
 >> this race?
 
+We didn's avoid race condition. We don't know how to perform that.
+
+
 ---- RATIONALE ----
 
 >> B7: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+This is 'Simple' and 'Powerful' solution for priority scheduling.
+We tried to solve 'priority inversion' problem by using donation technique
+(you can see our effort in lots of commits over several branches.)
+(T.T)
 
 
 			   SURVEY QUESTIONS
@@ -344,14 +360,25 @@ the quarter.
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
+We don't have much time for the project because of the tight OS lectures.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+We realized that even the smallest part of the OS had to be delicately designed.
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
 
+It looks very difficult. Students have to try digging on
+the structure of the Operating Systems.
+
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
 
+We love our TA, Thank you Jie~! <3
+
 >> Any other comments?
+
+We love our TA, Thank you Jie~! <3
