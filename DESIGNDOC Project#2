@@ -1,0 +1,469 @@
+		     +--------------------------+
+       	       	     |		 IIT 3002	|
+		     | PROJECT 2: USER PROGRAMS	|
+		     | 	   DESIGN DOCUMENT     	|
+		     +--------------------------+
+
+---- GROUP ----
+
+>> Fill in the names and email addresses of your group members.
+
+FirstName LastName <email@domain.example>
+FirstName LastName <email@domain.example>
+FirstName LastName <email@domain.example>
+
+---- PRELIMINARIES ----
+
+>> If you have any preliminary comments on your submission, notes for the
+>> TAs, or extra credit, please give them here.
+
+>> Please cite any offline or online sources you consulted while
+>> preparing your submission, other than the Pintos documentation, course
+>> text, lecture notes, and course staff.
+
+			   ARGUMENT PASSING
+			   ================
+
+---- DATA STRUCTURES ----
+
+>> A1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+----------------------------------------------------------------------------------------------------------------------
+1. Add arguments at setup_stack ()
+
+before:
+static bool setup_stack (void **esp);
+
+after:
+static bool setup_stack (void **esp, const char *file_name, int length);
+
+
+----------------------------------------------------------------------------------------------------------------------
+2. Edit load ()
+
+load (const char *file_name, void (**eip) (void), void **esp)
+{
+  struct thread *t = thread_current ();
+  struct Elf32_Ehdr ehdr;
+  struct file *file = NULL;
+  off_t file_ofs;
+  bool success = false;
+  int i;
+
+  /* Allocate and activate page directory. */
+  t->pagedir = pagedir_create ();
+  if (t->pagedir == NULL)
+    goto done;
+  process_activate ();
+  
+  /***************************  file parsing start   ***************************/
+  int length = strlen (file_name);
+  char *save_ptr, *token;
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {}
+  /*************************** file parsing finished ***************************/
+
+  /* Open executable file. */
+  file = filesys_open (file_name);
+  if (file == NULL)
+    {
+      printf ("load: %s: open failed\n", file_name);
+      goto done;
+    }
+
+  /* Read and verify executable header. */
+  if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
+      || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
+      || ehdr.e_type != 2
+      || ehdr.e_machine != 3
+      || ehdr.e_version != 1
+      || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
+      || ehdr.e_phnum > 1024)
+    {
+      printf ("load: %s: error loading executable\n", file_name);
+      goto done;
+    }
+
+  /* Read program headers. */
+  file_ofs = ehdr.e_phoff;
+  for (i = 0; i < ehdr.e_phnum; i++)
+    {
+      struct Elf32_Phdr phdr;
+
+      if (file_ofs < 0 || file_ofs > file_length (file))
+        goto done;
+      file_seek (file, file_ofs);
+
+      if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
+        goto done;
+      file_ofs += sizeof phdr;
+      switch (phdr.p_type)
+        {
+        case PT_NULL:
+        case PT_NOTE:
+        case PT_PHDR:
+        case PT_STACK:
+        default:
+          /* Ignore this segment. */
+          break;
+        case PT_DYNAMIC:
+        case PT_INTERP:
+        case PT_SHLIB:
+          goto done;
+        case PT_LOAD:
+          if (validate_segment (&phdr, file))
+            {
+              bool writable = (phdr.p_flags & PF_W) != 0;
+              uint32_t file_page = phdr.p_offset & ~PGMASK;
+              uint32_t mem_page = phdr.p_vaddr & ~PGMASK;
+              uint32_t page_offset = phdr.p_vaddr & PGMASK;
+              uint32_t read_bytes, zero_bytes;
+              if (phdr.p_filesz > 0)
+                {
+                  /* Normal segment.
+                     Read initial part from disk and zero the rest. */
+                  read_bytes = page_offset + phdr.p_filesz;
+                  zero_bytes = (ROUND_UP (page_offset + phdr.p_memsz, PGSIZE)
+                                - read_bytes);
+                }
+              else
+                {
+                  /* Entirely zero.
+                     Don't read anything from disk. */
+                  read_bytes = 0;
+                  zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
+                }
+              if (!load_segment (file, file_page, (void *) mem_page,
+                                 read_bytes, zero_bytes, writable))
+                goto done;
+            }
+          else
+            goto done;
+          break;
+        }
+    }
+
+  /* Set up stack. */
+  if (!setup_stack (esp, file_name, length))
+    goto done;
+
+  /* Start address. */
+  *eip = (void (*) (void)) ehdr.e_entry;
+
+  success = true;
+
+ done:
+  /* We arrive here whether the load is successful or not. */
+  file_close (file);
+  return success;
+}
+
+----------------------------------------------------------------------------------------------------------------------
+3. add functions for accessing user stack.
+
+bool
+put_user (uint8_t *udst, uint8_t byte)
+{
+  int error_code;
+  asm ("movl $1f, %0; movb %b2, %1; 1:" : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+  return error_code != -1;
+}
+
+bool
+puts_user (uint8_t *udst, uint8_t *bytes, uint32_t length)
+{
+  bool error_code = true;
+  uint32_t i;
+
+  for (i = 0; i < length; i++)
+      error_code &= put_user(udst + i, bytes[i]);
+
+  return error_code;
+}
+
+uint8_t
+get_user (uint8_t *usrc)
+{
+  uint32_t result;
+  asm ("movl $1f, %0; movzbl %1, %0; 1:" : "=&a" (result) : "m" (*usrc));
+  return (uint8_t)(result & 0xFF);
+}
+
+void
+gets_user (uint8_t *usrc, uint8_t *buffer, uint32_t length)
+{
+  uint32_t i;
+
+  for (i = 0; i < length; i++)
+      buffer[i] = get_user (usrc + i);
+}
+
+----------------------------------------------------------------------------------------------------------------------
+4. edit setup_stack ()
+
+static bool
+setup_stack (void **esp, const char *file_name, int length)
+{
+  uint8_t *kpage;
+  bool success = false;
+
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  if (kpage != NULL)
+    {
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      if (success)
+        {
+          // copy filename to stack
+          puts_user (PHYS_BASE - length, file_name, length);
+
+          // push pointers to stack (argv)
+          int num_args = 1;
+
+          for (int i = 0; i < length; i++)
+          {
+            if (*(file_name + i) == NULL)
+            {
+              num_args++;
+            }
+          }
+
+          char *ptr = file_name;
+
+          for (int i = 0; i < num_args; i++)
+          {
+            puts_user (PHYS_BASE - length - sizeof (void *) * (num_args - i), &ptr, sizeof (void *));
+            ptr += strlen (ptr) + 1;
+          }
+          char *argv = PHYS_BASE - length - sizeof (void *) * num_args;
+          puts_user (argv - sizeof (void *), &argv, sizeof (void *));
+
+          // push number of arguments to stack (argc)
+          puts_user (argv - 2 * sizeof (void *), num_args, sizeof (num_args));
+
+          // set esp
+          *esp = argv - 12;
+        }
+      else
+        palloc_free_page (kpage);
+    }
+  return success;
+}
+
+---- ALGORITHMS ----
+
+>> A2: Briefly describe how you implemented argument parsing.  How do
+>> you arrange for the elements of argv[] to be in the right order?
+>> How do you avoid overflowing the stack page?
+
+Here is a simple diagram of the stack structure using argument passing.
+
+----------------------------   <--- PHYS_BASE
+|                          |
+|                          |
+|                          |
+|                          |
+|                          |
+|         file_name        |
+|                          |
+|                          |
+|                          |
+|                          |
+----------------------------
+|                          |
+|          argv[n]         |
+|                          |
+----------------------------
+|                          |
+|         argv[n-1]        |
+|                          |
+----------------------------
+|            .             |
+|            .             |
+|            .             |
+----------------------------
+|                          |
+|          argv[1]         |
+|                          |
+----------------------------
+|                          |
+|          argv[0]         |
+|                          |
+----------------------------
+|                          |
+|           argv           |
+|                          |
+----------------------------
+|                          |
+|           argc           |
+|                          |
+----------------------------
+|                          |
+|      return address      |
+|                          |
+----------------------------   <--- esp
+
+We assumed that the argument size is smaller than the page size.
+
+
+---- RATIONALE ----
+
+>> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+Avoid errors when the function is called by multiple threads simultaneously.
+
+>> A4: In Pintos, the kernel separates commands into a executable name
+>> and arguments.  In Unix-like systems, the shell does this
+>> separation.  Identify at least two advantages of the Unix approach.
+
+It reduces bugs in the kernel.
+
+
+			     SYSTEM CALLS
+			     ============
+
+---- DATA STRUCTURES ----
+
+>> B1: Copy here the declaration of each new or changed `struct' or
+>> `struct' member, global or static variable, `typedef', or
+>> enumeration.  Identify the purpose of each in 25 words or less.
+
+>> B2: Describe how file descriptors are associated with open files.
+>> Are file descriptors unique within the entire OS or just within a
+>> single process?
+
+---- ALGORITHMS ----
+
+>> B3: Describe your code for reading and writing user data from the
+>> kernel.
+
+>> B4: Suppose a system call causes a full page (4,096 bytes) of data
+>> to be copied from user space into the kernel.  What is the least
+>> and the greatest possible number of inspections of the page table
+>> (e.g. calls to pagedir_get_page()) that might result?  What about
+>> for a system call that only copies 2 bytes of data?  Is there room
+>> for improvement in these numbers, and how much?
+
+>> B5: Briefly describe your implementation of the "wait" system call
+>> and how it interacts with process termination.
+
+>> B6: Any access to user program memory at a user-specified address
+>> can fail due to a bad pointer value.  Such accesses must cause the
+>> process to be terminated.  System calls are fraught with such
+>> accesses, e.g. a "write" system call requires reading the system
+>> call number from the user stack, then each of the call's three
+>> arguments, then an arbitrary amount of user memory, and any of
+>> these can fail at any point.  This poses a design and
+>> error-handling problem: how do you best avoid obscuring the primary
+>> function of code in a morass of error-handling?  Furthermore, when
+>> an error is detected, how do you ensure that all temporarily
+>> allocated resources (locks, buffers, etc.) are freed?  In a few
+>> paragraphs, describe the strategy or strategies you adopted for
+>> managing these issues.  Give an example.
+
+---- SYNCHRONIZATION ----
+
+>> B7: The "exec" system call returns -1 if loading the new executable
+>> fails, so it cannot return before the new executable has completed
+>> loading.  How does your code ensure this?  How is the load
+>> success/failure status passed back to the thread that calls "exec"?
+
+>> B8: Consider parent process P with child process C.  How do you
+>> ensure proper synchronization and avoid race conditions when P
+>> calls wait(C) before C exits?  After C exits?  How do you ensure
+>> that all resources are freed in each case?  How about when P
+>> terminates without waiting, before C exits?  After C exits?  Are
+>> there any special cases?
+
+---- RATIONALE ----
+
+>> B9: Why did you choose to implement access to user memory from the
+>> kernel in the way that you did?
+
+>> B10: What advantages or disadvantages can you see to your design
+>> for file descriptors?
+
+>> B11: The default tid_t to pid_t mapping is the identity mapping.
+>> If you changed it, what advantages are there to your approach?
+
+			   SURVEY QUESTIONS
+			   ================
+
+Answering these questions is optional, but it will help us improve the
+course in future quarters.  Feel free to tell us anything you
+want--these questions are just to spur your thoughts.  You may also
+choose to respond anonymously in the course evaluations at the end of
+the quarter.
+
+>> In your opinion, was this assignment, or any one of the three problems
+>> in it, too easy or too hard?  Did it take too long or too little time?
+
+It is too hard and may take too long time. So we gave up.
+
+>> Did you find that working on a particular part of the assignment gave
+>> you greater insight into some aspect of OS design?
+
+We got an insight into stack structure of OS design.
+
+How beautiful our diagram is!!
+
+----------------------------   <--- PHYS_BASE
+|                          |
+|                          |
+|                          |
+|                          |
+|                          |
+|         file_name        |
+|                          |
+|                          |
+|                          |
+|                          |
+----------------------------
+|                          |
+|          argv[n]         |
+|                          |
+----------------------------
+|                          |
+|         argv[n-1]        |
+|                          |
+----------------------------
+|            .             |
+|            .             |
+|            .             |
+----------------------------
+|                          |
+|          argv[1]         |
+|                          |
+----------------------------
+|                          |
+|          argv[0]         |
+|                          |
+----------------------------
+|                          |
+|           argv           |
+|                          |
+----------------------------
+|                          |
+|           argc           |
+|                          |
+----------------------------
+|                          |
+|      return address      |
+|                          |
+----------------------------   <--- esp
+
+>> Is there some particular fact or hint we should give students in
+>> future quarters to help them solve the problems?  Conversely, did you
+>> find any of our guidance to be misleading?
+
+It will be better if every project task is indepent to each other.
+(Provide an opportunity to try higher-level projects even if you have not done low-level projects yet.)
+
+>> Do you have any suggestions for the TAs to more effectively assist
+>> students, either for future quarters or the remaining projects?
+
+We want to be closer with TA. There wasn't a chance to meet TA on offline.
+
+>> Any other comments?
+
+We Love Our TA, JIE ZHANG!~~!!!! ~^^~ <3
