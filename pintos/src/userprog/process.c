@@ -28,25 +28,28 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *word)
 {
-  char *file_name, *arg1, *arg2;
+  char *file_name, *argv[100];
+  int argc = 0;
+  bool file_name_flag = false;
+
   char *fn_copy;
   tid_t tid;
 
   /* Parce the word to arguments */
   char *token, *save_ptr;
-  int count = 0;
 
   for (token = strtok_r (s, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {
-    if (count == 0) {
+    if (!file_name_flag) {
       file_name = token;
+      file_name_flag = true;
     }
-    else if (count == 1) {
-      arg1 = token;
+    else if (argc == 100) {
+      break;
     }
-    else if (count == 2) {
-      arg2 = token;
+    else {
+      argv[argc] = token;
+      argc++;
     }
-    count++;
   }
 
   /* Make a copy of FILE_NAME.
