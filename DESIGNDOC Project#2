@@ -258,7 +258,7 @@ setup_stack (void **esp, const char *file_name, int length)
 
 Here is a simple diagram of the stack structure using argument passing.
 
-----------------------------   <--- PHYS_BASE
++--------------------------+   <--- PHYS_BASE
 |                          |
 |                          |
 |                          |
@@ -301,7 +301,7 @@ Here is a simple diagram of the stack structure using argument passing.
 |                          |
 |      return address      |
 |                          |
-----------------------------   <--- esp
++--------------------------+   <--- esp
 
 We assumed that the argument size is smaller than the page size.
 
@@ -407,7 +407,7 @@ We got an insight into stack structure of OS design.
 
 How beautiful our diagram is!!
 
-----------------------------   <--- PHYS_BASE
++--------------------------+   <--- PHYS_BASE
 |                          |
 |                          |
 |                          |
@@ -450,7 +450,7 @@ How beautiful our diagram is!!
 |                          |
 |      return address      |
 |                          |
-----------------------------   <--- esp
++--------------------------+   <--- esp
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
