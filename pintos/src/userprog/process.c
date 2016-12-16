@@ -195,7 +195,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, const char *file_name, int length);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -220,6 +220,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+  int length = strlen (file_name);
+  char *save_ptr, *token;
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL; token = strtok_r (NULL, " ", &save_ptr)) {}
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -302,7 +306,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, file_name, length))
     goto done;
 
   /* Start address. */
@@ -424,10 +428,47 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
+bool
+put_user (uint8_t *udst, uint8_t byte)
+{
+  int error_code;
+  asm ("movl $1f, %0; movb %b2, %1; 1:" : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+  return error_code != -1;
+}
+
+bool
+puts_user (uint8_t *udst, uint8_t *bytes, uint32_t length)
+{
+  bool error_code = true;
+  uint32_t i;
+
+  for (i = 0; i < length; i++)
+      error_code &= put_user(udst + i, bytes[i]);
+
+  return error_code;
+}
+
+uint8_t
+get_user (uint8_t *usrc)
+{
+  uint32_t result;
+  asm ("movl $1f, %0; movzbl %1, %0; 1:" : "=&a" (result) : "m" (*usrc));
+  return (uint8_t)(result & 0xFF);
+}
+
+void
+gets_user (uint8_t *usrc, uint8_t *buffer, uint32_t length)
+{
+  uint32_t i;
+
+  for (i = 0; i < length; i++)
+      buffer[i] = get_user (usrc + i);
+}
+
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char *file_name, int length)
 {
   uint8_t *kpage;
   bool success = false;
@@ -437,7 +478,37 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;
+        {
+          // copy filename to stack
+          puts_user (PHYS_BASE - length, file_name, length);
+
+          // push pointers to stack (argv)
+          int num_args = 1;
+
+          for (int i = 0; i < length; i++)
+          {
+            if (*(file_name + i) == NULL)
+            {
+              num_args++;
+            }
+          }
+
+          char *ptr = file_name;
+
+          for (int i = 0; i < num_args; i++)
+          {
+            puts_user (PHYS_BASE - length - sizeof (void *) * (num_args - i), &ptr, sizeof (void *));
+            ptr += strlen (ptr) + 1;
+          }
+          char *argv = PHYS_BASE - length - sizeof (void *) * num_args;
+          puts_user (argv - sizeof (void *), &argv, sizeof (void *));
+
+          // push number of arguments to stack (argc)
+          puts_user (argv - 2 * sizeof (void *), num_args, sizeof (num_args));
+
+          // set esp
+          *esp = argv - 12;
+        }
       else
         palloc_free_page (kpage);
     }
